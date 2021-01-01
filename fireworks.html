@@ -39,10 +39,10 @@
       onResize();
 
       const FPS = 24; // Cinematic experience
-      const DRAW_INTERVAL = 1000 / FPS;
+      const RENDER_INTERVAL = 1000 / FPS;
       const DELTA_SECONDS = 1 / FPS;
-      const EXPLOSION_INTERVAL_MIN = 1000;
-      const EXPLOSION_INTERVAL_MAX = 6000;
+      const EXPLOSION_INTERVAL = 1000;
+      const EXPLOSION_CHANCE = 1/5;
       const GRAVITY = 9.8;
       const DELTA_GRAVITY = GRAVITY * DELTA_SECONDS;
       const EXPLOSION_PARTICLES = 200;
@@ -82,7 +82,7 @@
         }
       }
 
-      function createExplosion(x, y) {
+      function createParticles(x, y) {
         let color = Math.floor(Math.random() * COLORS.length);
         let colorParticles = particles[color];
 
@@ -144,21 +144,43 @@
         }
       }
 
-      window.setInterval(function() {
+      function renderFrame() {
         clearScreen();
         processParticles();
-      }, DRAW_INTERVAL);
-
-      function scheduleExplosion() {
-        window.setTimeout(function() {
-          createExplosion(rndRange(0.2 * width, 0.8 * width),
-                          rndRange(0.2 * height, 0.8 * height));
-
-          scheduleExplosion();
-        }, rndRange(EXPLOSION_INTERVAL_MIN, EXPLOSION_INTERVAL_MAX));
       }
 
-      scheduleExplosion();
+      function createExplosion() {
+        if (Math.random() < EXPLOSION_CHANCE) {
+          createParticles(rndRange(0.2 * width, 0.8 * width),
+                          rndRange(0.2 * height, 0.8 * height));
+        }
+      }
+
+      var renderInterval;
+      var explosionInterval;
+
+      function onVisibilityChange() {
+        if (document.visibilityState == "visible") {
+          if (explosionInterval == undefined)
+            explosionInterval = window.setInterval(createExplosion, EXPLOSION_INTERVAL);
+
+          if (renderInterval == undefined)
+            renderInterval = window.setInterval(renderFrame, RENDER_INTERVAL);
+        } else {
+          if (explosionInterval) {
+            window.clearInterval(explosionInterval);
+            explosionInterval = undefined;
+          }
+
+          if (renderInterval) {
+            window.clearInterval(renderInterval);
+            renderInterval = undefined;
+          }
+        }
+      }
+
+      document.addEventListener("visibilitychange", onVisibilityChange);
+      onVisibilityChange();
     </script>
   </body>
 </html>
