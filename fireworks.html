@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>🎆</title>
+    <style>
+      body { margin: 0; overflow: hidden; }
+      canvas { width:100vw; height:100vh; }
+    </style>
+    <script type="text/javascript">
+    </script>
+  </head>
+  <body>
+    <canvas id="fireworks" style="background: rgba(0,0,0,1);"/>
+    <script type="text/javascript">
+      const canvas = document.getElementById("fireworks");
+      var ctx = canvas.getContext("2d");
+
+      let width, height, particleRadius, crossRadius;
+
+      function onResize () {
+        width = canvas.offsetWidth;
+        height = canvas.offsetHeight;
+        particleRadius = width / 650;
+        crossRadius = particleRadius * 1.3;
+
+        if (window.devicePixelRatio > 1) {
+          // Make it sharper for retina displays
+          canvas.width = canvas.clientWidth * 2;
+          canvas.height = canvas.clientHeight * 2;
+          ctx.scale(2, 2);
+        } else {
+          canvas.width = width;
+          canvas.height = height;
+        }
+      }
+
+      window.addEventListener('resize', onResize);
+      onResize();
+
+      const FPS = 24; // Cinematic experience
+      const DRAW_INTERVAL = 1000 / FPS;
+      const DELTA_SECONDS = 1 / FPS;
+      const EXPLOSION_INTERVAL_MIN = 1000;
+      const EXPLOSION_INTERVAL_MAX = 6000;
+      const GRAVITY = 9.8;
+      const DELTA_GRAVITY = GRAVITY * DELTA_SECONDS;
+      const EXPLOSION_PARTICLES = 200;
+      const EXPLOSION_MIN_SPEED = 40;
+      const EXPLOSION_MAX_SPEED = 60;
+      // 4 tetriadic colors with their lighter variants
+      // https://www.canva.com/colors/color-wheel/
+      const COLORS = [
+        ["#E7182B", "#F7B3B9"],
+        ["#93E718", "#CDF494"],
+        ["#18E7D4", "#A0F5ED"],
+        ["#6C18E7", "#bc96f4"]
+      ]
+
+      const PIx2 = Math.PI * 2;
+
+      // Each color gets separate particle array,
+      // so their draw calls can be grouped together for optimization
+      var particles = [];
+      for (i=0; i < COLORS.length; i++) particles.push([]);
+
+      function rndRange(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      // Generate uniformly distributed particle on a sphere
+      // http://corysimon.github.io/articles/uniformdistn-on-sphere/
+      function sphereRand(radius) {
+        let theta = PIx2 * Math.random();
+        let phi = Math.acos(1 - (2 * Math.random()));
+        let sinPhi = Math.sin(phi);
+
+        return {
+          x: sinPhi * Math.cos(theta) * radius,
+          y: sinPhi * Math.sin(theta) * radius,
+          z: Math.cos(phi) * radius
+        }
+      }
+
+      function createExplosion(x, y) {
+        let color = Math.floor(Math.random() * COLORS.length);
+        let colorParticles = particles[color];
+
+        for(let i = 0; i < EXPLOSION_PARTICLES; i++) {
+          let explosionVelocity = rndRange(EXPLOSION_MIN_SPEED, EXPLOSION_MAX_SPEED);
+          colorParticles.push({
+            x: x,
+            y: y,
+            velocity: sphereRand(explosionVelocity) // px / sec
+          });
+        }
+      }
+
+      function clearScreen() {
+        ctx.clearRect(0, 0, width, height);
+      }
+
+      // Don't remove particles above viewport,
+      // as they will fall down into view
+      function outOfBounds(particle) {
+        return (particle.x < 0 || particle.x > width || particle.y > height);
+      }
+
+      function moveParticle(particle){
+        particle.x += (particle.velocity.x * DELTA_SECONDS);
+        particle.y += (particle.velocity.y * DELTA_SECONDS);
+
+        particle.velocity.y += DELTA_GRAVITY;
+      }
+
+      function processParticles() {
+        for(color = 0; color < COLORS.length; color++) {
+          // Background circle
+          ctx.fillStyle = COLORS[color][0];
+          ctx.beginPath();
+
+          // Filter out the out-of-bounds particles on the first pass
+          particles[color] = particles[color].filter(function(particle) {
+            if (outOfBounds(particle)) return false;
+            moveParticle(particle);
+
+            ctx.moveTo(particle.x, particle.y);
+            ctx.arc(particle.x, particle.y, particleRadius, 0, PIx2);
+
+            return true;
+          });
+          ctx.fill();
+
+          // Brighter cross over the circle
+          ctx.strokeStyle = COLORS[color][1];
+          ctx.beginPath();
+          particles[color].forEach(function(particle) {
+            ctx.moveTo(particle.x, particle.y - crossRadius);
+            ctx.lineTo(particle.x, particle.y + crossRadius);
+            ctx.moveTo(particle.x - crossRadius, particle.y);
+            ctx.lineTo(particle.x + crossRadius, particle.y);
+          });
+          ctx.stroke();
+        }
+      }
+
+      window.setInterval(function() {
+        clearScreen();
+        processParticles();
+      }, DRAW_INTERVAL);
+
+      function scheduleExplosion() {
+        window.setTimeout(function() {
+          createExplosion(rndRange(0.2 * width, 0.8 * width),
+                          rndRange(0.2 * height, 0.8 * height));
+
+          scheduleExplosion();
+        }, rndRange(EXPLOSION_INTERVAL_MIN, EXPLOSION_INTERVAL_MAX));
+      }
+
+      scheduleExplosion();
+    </script>
+  </body>
+</html>

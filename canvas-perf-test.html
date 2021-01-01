@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <canvas id="test" width="500" height="500" style="border: 1px solid gray"/>
+
+    <script type="text/javascript">
+      // Test the performance difference made by
+      // grouping multiple shapes in fewer beginPath calls
+
+      const canvas = document.getElementById("test");
+      var ctx = canvas.getContext("2d");
+
+      let x = 250;
+      let y = 250;
+      let r = 10;
+      let cr = 13;
+
+      console.time("separate");
+      for (i = 0; i < 10000; i++) {
+        ctx.fillStyle = "black"
+
+        ctx.beginPath();
+        ctx.arc(x, x, r, 0, 2 * Math.PI);
+        ctx.fill();
+
+        ctx.strokeStyle = "yellow"
+        ctx.beginPath();
+        ctx.moveTo(x, y - cr);
+        ctx.lineTo(x, y + cr);
+        ctx.moveTo(x - cr, y);
+        ctx.lineTo(x + cr, y);
+        ctx.stroke();
+      }
+      console.timeEnd("separate");
+
+      console.time("grouped");
+      for (i = 0; i < 10; i++) {
+        ctx.fillStyle = "black"
+        ctx.beginPath();
+        for (j = 0; j < 1000; j++) {
+          ctx.moveTo(x, x);
+          ctx.arc(x, x, r, 0, 2 * Math.PI);
+        }
+        ctx.fill();
+
+        ctx.strokeStyle = "yellow"
+        ctx.beginPath();
+        for (j = 0; j < 1000; j++) {
+          ctx.moveTo(x, y - cr);
+          ctx.lineTo(x, y + cr);
+          ctx.moveTo(x - cr, y);
+          ctx.lineTo(x + cr, y);
+        }
+        ctx.stroke();
+      }
+      console.timeEnd("grouped");
+    </script>
+  </body>
+</script>

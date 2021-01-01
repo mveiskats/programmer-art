@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <div>See console output</div>
+    <script type="text/javascript">
+
+      const SIZE = 5000000;
+      console.log("Benchmarking array initialization");
+
+      var arr;
+
+      console.time("push object");
+      arr = [];
+      for(i = 0; i < SIZE; i++) {
+        arr.push({ x: i, y: i, enabled: true });
+      }
+      console.timeEnd("push object");
+
+      console.time("assign object");
+      arr = new Array(SIZE);
+      for(i = 0; i < SIZE; i++) {
+        arr[i] = { x: i, y: i};
+      }
+      console.timeEnd("assign object");
+
+      var arrX, arrY;
+
+      console.time("push values");
+      arrX = [];
+      arrY = [];
+      for(i = 0; i < SIZE; i++) {
+        arrX.push(i);
+        arrY.push(i);
+      }
+      console.timeEnd("push values");
+
+      console.time("assign values");
+      arrX = new Int32Array(SIZE);
+      arrY = new Int32Array(SIZE);
+      for(i = 0; i < SIZE; i++) {
+        arrX[i] = i;
+        arrY[i] = i;
+      }
+      console.timeEnd("assign values");
+
+      console.log("Benchmarking array iteration");
+      var total;
+
+      total = 0;
+      console.time("for (length, i++)");
+      for(i = 0; i < arr.length; i++) {
+        total = total + arr[i].x + arr[i].y;
+      }
+      console.timeEnd("for (length, i++)");
+
+      total = 0;
+      console.time("for (i++)");
+      for(i = 0; i < SIZE; i++) {
+        total = total + arr[i].x + arr[i].y;
+      }
+      console.timeEnd("for (i++)");
+
+      total = 0;
+      console.time("for (++i)");
+      for(i = 0; i < SIZE; i++) {
+        total = total + arr[i].x + arr[i].y;
+      }
+      console.timeEnd("for (++i)");
+
+      total = 0;
+      console.time("for (--i)");
+      for(i = SIZE - 1; i >= 0; i--) {
+        total = total + arr[i].x + arr[i].y;
+      }
+      console.timeEnd("for (--i)");
+
+      total = 0;
+      console.time("for { let }");
+      for(i = 0; i < SIZE; i++) {
+        let elem = arr[i];
+        total = total + elem.x + elem.y;
+      }
+      console.timeEnd("for { let }");
+
+      total = 0;
+      console.time("forEach");
+      arr.forEach(function(obj, i) {
+        total = total + obj.x + obj.y;
+        return true;
+      })
+      console.timeEnd("forEach");
+
+      total = 0;
+      console.time("multiple arrays");
+      for(i = 0; i < SIZE; i++) {
+        total = total + arrX[i] + arrY[i];
+      }
+      console.timeEnd("multiple arrays");
+
+      total = 0;
+      console.time("filter");
+      arr.filter(function(obj, i) {
+        total = total + obj.x + obj.y;
+        return obj.x >= 0 && obj.x < SIZE && obj.y < SIZE;
+      })
+      console.timeEnd("filter");
+
+      total = 0;
+      invisible = 0;
+      console.time("forEach { if visible }");
+      arr.forEach(function(obj, i) {
+        if (obj.x < 0 && obj.x > SIZE && obj.y > SIZE) {
+          invisible += 1;
+        } else {
+          total = total + obj.x + obj.y;
+        }
+      })
+      console.timeEnd("forEach { if visible }");
+    </script>
+  </body>
+</script>
