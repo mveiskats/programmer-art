@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>🐍</title>
+    <style>
+      body { background: gray; margin: 0; overflow: hidden; }
+      canvas {
+          padding: 0;
+          display: block;
+          margin: auto;
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 0;
+          right: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="board" style="background: rgba(255,255,255,1);"/>
+    <script type="text/javascript">
+      const BOARD_WIDTH = 41;
+      const BOARD_HEIGHT = 31;
+      const EMPTY_TILE = 0;
+      const SNEK_TILE = 1;
+      const FOOD_TILE = 2;
+      const INITIAL_FOOD = 10;
+      const FOOD_GROWTH_FRAMES = 10;
+
+      let tileSize = 10;
+
+      let fps, intervalID;
+
+      let board;
+      let direction;
+      let headX, headY;
+      let body;
+      let nextFoodIn;
+
+      let canvas = document.getElementById("board");
+      let ctx = canvas.getContext("2d");
+
+      canvas.width = BOARD_WIDTH * tileSize;
+      canvas.height = BOARD_HEIGHT * tileSize;
+
+      function drawHead(x, y) {
+        ctx.fillStyle = "black";
+        ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+      }
+
+      function drawFood(x, y) {
+        ctx.fillStyle = "green";
+        ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+      }
+
+      function clearTile(x, y) {
+        ctx.clearRect(x * tileSize, y * tileSize, tileSize, tileSize);
+      }
+
+      function setDirection(x, y) {
+        // Don't allow turning backwards
+        if(direction == null ||
+           direction[0] != -x ||
+           direction[1] != -y)
+          direction = [x, y];
+      }
+
+      function onKeyDown(event) {
+        switch (event.key) {
+          case "a":
+          case "ArrowLeft":
+            setDirection(-1, 0);
+            break;
+          case "d":
+          case "ArrowRight":
+            setDirection(1, 0);
+            break;
+          case "w":
+          case "ArrowUp":
+            setDirection(0, -1);
+            break;
+          case "s":
+          case "ArrowDown":
+            setDirection(0, 1);
+            break;
+        }
+      };
+
+      function setFps(newFps) {
+        if(intervalID) clearInterval(intervalID);
+        fps = newFps;
+        intervalID = setInterval(loop, 1000 / fps);
+      }
+
+      function loop() {
+        if (direction === null) return;
+
+        headX += direction[0];
+        headY += direction[1];
+
+        if (headX < 0 || headX >= BOARD_WIDTH ||
+            headY < 0 || headY >= BOARD_HEIGHT ||
+            board[headX][headY] == SNEK_TILE) {
+          gameOver();
+          return;
+        }
+
+        if(board[headX][headY] == FOOD_TILE) {
+          setFps(fps + 0.2);
+        } else {
+          // Remove tail
+          let [tailX, tailY] = body.shift();
+          board[tailX][tailY] = EMPTY_TILE;
+          clearTile(tailX, tailY);
+        }
+
+        // Add new head tile
+        body.push([headX, headY]);
+        board[headX][headY] = SNEK_TILE;
+        drawHead(headX, headY);
+
+        nextFoodIn--;
+        if(nextFoodIn == 0) generateFood();
+      }
+
+      function onResize () {
+        console.log(Math.floor(window.innerWidth / BOARD_WIDTH));
+        console.log(Math.floor(window.innerHeight / BOARD_HEIGHT));
+        tileSize = Math.min(Math.floor(window.innerWidth / BOARD_WIDTH),
+                            Math.floor(window.innerHeight / BOARD_HEIGHT));
+        console.log(Math.floor(window.innerWidth / BOARD_WIDTH));
+        console.log(Math.floor(window.innerHeight / BOARD_HEIGHT));
+        console.log(tileSize);
+
+        canvas.width = BOARD_WIDTH * tileSize;
+        canvas.height = BOARD_HEIGHT * tileSize;
+        canvas.style.width = canvas.width + "px";
+        canvas.style.height = canvas.height + "px";
+
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for(let x = 0; x < BOARD_WIDTH; x++)
+          for(let y = 0; y < BOARD_HEIGHT; y++)
+            switch(board[x][y]) {
+            case SNEK_TILE:
+              drawHead(x, y);
+              break;
+            case FOOD_TILE:
+              drawFood(x, y);
+              break;
+            }
+      }
+
+      function generateFood() {
+        let foodX, foodY;
+
+        do {
+          foodX = Math.floor(Math.random() * BOARD_WIDTH);
+          foodY = Math.floor(Math.random() * BOARD_HEIGHT);
+        } while(board[foodX][foodY] != EMPTY_TILE)
+
+        board[foodX][foodY] = FOOD_TILE;
+        drawFood(foodX, foodY);
+        nextFoodIn = FOOD_GROWTH_FRAMES;
+      }
+
+      function gameOver() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        direction = null;
+        [headX, headY] = [20, 15];
+        body = [[headX, headY]];
+        board = Array(BOARD_WIDTH).fill(null).map(function() {
+          return Array(BOARD_HEIGHT).fill(EMPTY_TILE);
+        });
+
+        board[headX][headY] = SNEK_TILE;
+        drawHead(headX, headY);
+
+        for(let i = 0; i < INITIAL_FOOD; i++) generateFood();
+
+        setFps(5);
+      }
+
+      window.addEventListener("resize", onResize);
+      window.addEventListener("keydown", onKeyDown);
+      gameOver();
+      onResize();
+    </script>
+  </body>
+</html>
