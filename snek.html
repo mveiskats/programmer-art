@@ -33,7 +33,7 @@
       let fps, intervalID;
 
       let board;
-      let direction;
+      let directionX, directionY;
       let headX, headY;
       let body;
       let nextFoodIn;
@@ -59,11 +59,18 @@
       }
 
       function setDirection(x, y) {
-        // Don't allow turning backwards
-        if(direction == null ||
-           direction[0] != -x ||
-           direction[1] != -y)
-          direction = [x, y];
+        if(body.length > 1) {
+          let nextX = headX + x;
+          let nextY = headY + y;
+
+          var neck = body[body.length - 2]
+
+          // Don't allow turning backwards
+          if(nextX == neck[0] && nextY == neck[1]) return
+        }
+
+        directionX = x
+        directionY = y;
       }
 
       function onKeyDown(event) {
@@ -87,17 +94,47 @@
         }
       };
 
+      function generateFood() {
+        let foodX, foodY;
+
+        do {
+          foodX = Math.floor(Math.random() * BOARD_WIDTH);
+          foodY = Math.floor(Math.random() * BOARD_HEIGHT);
+        } while(board[foodX][foodY] != EMPTY_TILE)
+
+        board[foodX][foodY] = FOOD_TILE;
+        drawFood(foodX, foodY);
+        nextFoodIn = FOOD_GROWTH_FRAMES;
+      }
+
       function setFps(newFps) {
         if(intervalID) clearInterval(intervalID);
         fps = newFps;
         intervalID = setInterval(loop, 1000 / fps);
       }
 
-      function loop() {
-        if (direction === null) return;
+      function gameOver() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        directionX = directionY = 0;
+        [headX, headY] = [20, 15];
+        body = [[headX, headY]];
+        board = Array(BOARD_WIDTH).fill(null).map(function() {
+          return Array(BOARD_HEIGHT).fill(EMPTY_TILE);
+        });
 
-        headX += direction[0];
-        headY += direction[1];
+        board[headX][headY] = SNEK_TILE;
+        drawHead(headX, headY);
+
+        for(let i = 0; i < INITIAL_FOOD; i++) generateFood();
+
+        setFps(5);
+      }
+
+      function loop() {
+        if (directionX == 0 && directionY == 0) return;
+
+        headX += directionX;
+        headY += directionY;
 
         if (headX < 0 || headX >= BOARD_WIDTH ||
             headY < 0 || headY >= BOARD_HEIGHT ||
@@ -121,23 +158,17 @@
         drawHead(headX, headY);
 
         nextFoodIn--;
-        if(nextFoodIn == 0) generateFood();
+        if(nextFoodIn <= 0) generateFood();
       }
 
       function onResize () {
-        console.log(Math.floor(window.innerWidth / BOARD_WIDTH));
-        console.log(Math.floor(window.innerHeight / BOARD_HEIGHT));
         tileSize = Math.min(Math.floor(window.innerWidth / BOARD_WIDTH),
                             Math.floor(window.innerHeight / BOARD_HEIGHT));
-        console.log(Math.floor(window.innerWidth / BOARD_WIDTH));
-        console.log(Math.floor(window.innerHeight / BOARD_HEIGHT));
-        console.log(tileSize);
 
         canvas.width = BOARD_WIDTH * tileSize;
         canvas.height = BOARD_HEIGHT * tileSize;
         canvas.style.width = canvas.width + "px";
         canvas.style.height = canvas.height + "px";
-
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         for(let x = 0; x < BOARD_WIDTH; x++)
@@ -150,36 +181,6 @@
               drawFood(x, y);
               break;
             }
-      }
-
-      function generateFood() {
-        let foodX, foodY;
-
-        do {
-          foodX = Math.floor(Math.random() * BOARD_WIDTH);
-          foodY = Math.floor(Math.random() * BOARD_HEIGHT);
-        } while(board[foodX][foodY] != EMPTY_TILE)
-
-        board[foodX][foodY] = FOOD_TILE;
-        drawFood(foodX, foodY);
-        nextFoodIn = FOOD_GROWTH_FRAMES;
-      }
-
-      function gameOver() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        direction = null;
-        [headX, headY] = [20, 15];
-        body = [[headX, headY]];
-        board = Array(BOARD_WIDTH).fill(null).map(function() {
-          return Array(BOARD_HEIGHT).fill(EMPTY_TILE);
-        });
-
-        board[headX][headY] = SNEK_TILE;
-        drawHead(headX, headY);
-
-        for(let i = 0; i < INITIAL_FOOD; i++) generateFood();
-
-        setFps(5);
       }
 
       window.addEventListener("resize", onResize);
